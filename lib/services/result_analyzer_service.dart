@@ -164,6 +164,10 @@ class ResultAnalyzerService {
     List<StudentResult> students, {
     required AcademicYear academicYear,
   }) {
+    if (academicYear == AcademicYear.unknown) {
+      // Unknown means "all years" in analysis contexts
+      return students;
+    }
     return students
         .where((student) => student.academicYear == academicYear)
         .toList();

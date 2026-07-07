@@ -5,15 +5,22 @@ import '../models/exam_view_mode.dart';
 import '../models/student_result.dart';
 import 'student_result_card.dart';
 
+/// Controls how student cards are arranged inside each status column.
+/// - vertical: current layout, vertical column with normal page scrolling
+/// - horizontal: cards inside a horizontally scrollable Row
+enum StudentListLayout { vertical, horizontal }
+
 class DepartmentSection extends StatelessWidget {
   const DepartmentSection({
     super.key,
     required this.group,
     required this.examViewMode,
+    this.layout = StudentListLayout.vertical,
   });
 
   final DepartmentGroup group;
   final ExamViewMode examViewMode;
+  final StudentListLayout layout;
 
   @override
   Widget build(BuildContext context) {
@@ -61,8 +68,12 @@ class DepartmentSection extends StatelessWidget {
                     height: 20,
                     child: LinearProgressIndicator(
                       value: passPercentage,
-                      backgroundColor: const Color(0xFFEF5350), // Clean Material red
-                      valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF43A047)), // Material green
+                      backgroundColor: const Color(
+                        0xFFEF5350,
+                      ), // Clean Material red
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                        Color(0xFF43A047),
+                      ), // Material green
                     ),
                   ),
                 ),
@@ -92,18 +103,22 @@ class DepartmentSection extends StatelessWidget {
             LayoutBuilder(
               builder: (context, constraints) {
                 final screenWide = constraints.maxWidth >= 800;
-                final significantImbalance = group.passStudents.length < 3 && group.arrearStudents.length > 5;
+                final significantImbalance =
+                    group.passStudents.length < 3 &&
+                    group.arrearStudents.length > 5;
                 final useTwoColumns = screenWide && !significantImbalance;
-                
+
                 final passColumn = _StatusColumn(
                   title: examViewMode.passSectionTitle,
                   students: group.passStudents,
                   backgroundColor: passColumnColor,
+                  layout: layout,
                 );
                 final arrearColumn = _StatusColumn(
                   title: 'Arrear Students',
                   students: group.arrearStudents,
                   backgroundColor: const Color(0xFFFFF5F2),
+                  layout: layout,
                 );
 
                 if (useTwoColumns) {
@@ -121,7 +136,8 @@ class DepartmentSection extends StatelessWidget {
                 return Column(
                   children: [
                     passColumn,
-                    if (group.passStudents.isNotEmpty && group.arrearStudents.isNotEmpty) ...[
+                    if (group.passStudents.isNotEmpty &&
+                        group.arrearStudents.isNotEmpty) ...[
                       const SizedBox(height: 16),
                       const Divider(),
                       const SizedBox(height: 16),
@@ -167,11 +183,13 @@ class _StatusColumn extends StatelessWidget {
     required this.title,
     required this.students,
     required this.backgroundColor,
+    required this.layout,
   });
 
   final String title;
   final List<StudentResult> students;
   final Color backgroundColor;
+  final StudentListLayout layout;
 
   @override
   Widget build(BuildContext context) {
@@ -198,15 +216,54 @@ class _StatusColumn extends StatelessWidget {
               style: Theme.of(context).textTheme.bodyMedium,
             )
           else
-            Column(
-              children: students
-                  .map(
-                    (student) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: StudentResultCard(student: student),
-                    ),
-                  )
-                  .toList(),
+            Builder(
+              builder: (context) {
+                if (layout == StudentListLayout.vertical) {
+                  // Existing vertical list layout (unchanged)
+                  return Column(
+                    children: students
+                        .map(
+                          (student) => Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: StudentResultCard(student: student),
+                          ),
+                        )
+                        .toList(),
+                  );
+                }
+
+                // Horizontal layout: horizontally scrollable list of cards
+                return LayoutBuilder(
+                  builder: (context, c) {
+                    final maxWidth = c.maxWidth;
+                    // Pick a card width that looks good on desktop and web
+                    // while keeping the existing StudentResultCard design intact.
+                    final double cardWidth = maxWidth >= 1200
+                        ? 420
+                        : maxWidth >= 900
+                        ? 360
+                        : 320;
+
+                    return SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: students
+                            .map(
+                              (student) => Padding(
+                                padding: const EdgeInsets.only(right: 12),
+                                child: SizedBox(
+                                  width: cardWidth,
+                                  child: StudentResultCard(student: student),
+                                ),
+                              ),
+                            )
+                            .toList(),
+                      ),
+                    );
+                  },
+                );
+              },
             ),
         ],
       ),

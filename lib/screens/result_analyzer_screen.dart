@@ -44,9 +44,19 @@ class _ResultAnalyzerScreenState extends State<ResultAnalyzerScreen> {
   String? _selectedSourceName;
   String _rawTextPreview = '';
   PdfExtractionStrategy? _extractionStrategy;
+  int? _pageCount;
   String _analysisStatusMessage = '';
   String? _errorMessage;
   bool _isLoading = false;
+
+  // Export options
+  bool _anonymizePii = false;
+  bool _splitByDepartment = false;
+
+  // View toggle: controls how student cards are arranged
+  // - Vertical View: current layout (vertical columns, page scrolls vertically)
+  // - Horizontal View: cards inside a horizontally scrollable row
+  StudentListLayout _studentListLayout = StudentListLayout.vertical;
 
   List<StudentResult> get _studentsInSelectedExamView => _resultAnalyzerService
       .studentsForExamView(_students, examViewMode: _examViewMode);
@@ -212,6 +222,7 @@ class _ResultAnalyzerScreenState extends State<ResultAnalyzerScreen> {
         _selectedSourceName = file.name;
         _rawTextPreview = trimmedRawText;
         _extractionStrategy = chosenExtraction.strategy;
+        _pageCount = chosenExtraction.pageCount;
         _students = students;
         _examViewMode = _defaultExamViewMode(students);
         _analysisYear = _defaultAnalysisYear(
@@ -256,23 +267,32 @@ class _ResultAnalyzerScreenState extends State<ResultAnalyzerScreen> {
     return 'This PDF could not be organized into result categories. Please upload the correct Anna University result PDF again.';
   }
 
-  Future<void> _exportToExcel() async {
-    if (_students.isEmpty) return;
+  Future<void> _exportWorkbook({
+    required List<StudentResult> students,
+    required String examViewLabel,
+  }) async {
+    if (students.isEmpty) return;
 
     try {
       String? destinationPath;
-
       if (_usesDesktopSaveDialog) {
+        final passCount = students
+            .where((s) => s.status == ResultStatus.allClear)
+            .length;
+        final passRate = students.isEmpty
+            ? 0.0
+            : (passCount / students.length) * 100.0;
         destinationPath = await FilePicker.platform.saveFile(
           dialogTitle: 'Save Excel analysis',
-          fileName: _excelExportService.suggestedFileName(
+          fileName: _excelExportService.suggestedFileNameAdvanced(
             sourceName: _selectedSourceName,
+            examViewLabel: examViewLabel,
+            passRate: passRate,
           ),
           type: FileType.custom,
           allowedExtensions: const ['xlsx'],
           lockParentWindow: _isWindowsDesktop,
         );
-
         if (destinationPath == null) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -283,11 +303,18 @@ class _ResultAnalyzerScreenState extends State<ResultAnalyzerScreen> {
         }
       }
 
-      final filePath = await _excelExportService.exportToExcel(
-        _students,
+      final filePath = await _excelExportService.exportWorkbook(
+        students: students,
         destinationPath: destinationPath,
         sourceName: _selectedSourceName,
+        examViewLabel: examViewLabel,
+        analysisYear: _analysisYear,
+        extractionModeLabel: _extractionStrategy?.label,
+        pageCount: _pageCount,
+        anonymize: _anonymizePii,
+        splitByDepartment: _splitByDepartment,
       );
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -313,6 +340,17 @@ class _ResultAnalyzerScreenState extends State<ResultAnalyzerScreen> {
         );
       }
     }
+  }
+
+  Future<void> _exportFilteredView() async {
+    await _exportWorkbook(
+      students: _filteredStudents,
+      examViewLabel: _examViewMode.label,
+    );
+  }
+
+  Future<void> _exportAllData() async {
+    await _exportWorkbook(students: _students, examViewLabel: 'Mixed');
   }
 
   @override
@@ -391,11 +429,84 @@ class _ResultAnalyzerScreenState extends State<ResultAnalyzerScreen> {
       extractionStrategy: _extractionStrategy,
     );
 
+    final exportControls = _students.isEmpty
+        ? const SizedBox.shrink()
+        : Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final compact = constraints.maxWidth < 720;
+                  final buttons = Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      FilledButton.icon(
+                        onPressed: _exportFilteredView,
+                        icon: const Icon(Icons.file_download_rounded),
+                        label: const Text('Export Filtered View'),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: _exportAllData,
+                        icon: const Icon(Icons.save_alt_rounded),
+                        label: const Text('Export All Data'),
+                      ),
+                      const SizedBox(width: 12),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Switch(
+                            value: _anonymizePii,
+                            onChanged: (v) => setState(() => _anonymizePii = v),
+                          ),
+                          const SizedBox(width: 6),
+                          const Text('Anonymize PII'),
+                        ],
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Switch(
+                            value: _splitByDepartment,
+                            onChanged: (v) =>
+                                setState(() => _splitByDepartment = v),
+                          ),
+                          const SizedBox(width: 6),
+                          const Text('Split by Department'),
+                        ],
+                      ),
+                    ],
+                  );
+                  return compact
+                      ? Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            buttons,
+                            const SizedBox(height: 6),
+                            Text(
+                              'Tip: "Filtered View" exports what you currently see (search + filters).',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ],
+                        )
+                      : Row(
+                          children: [
+                            Expanded(child: buttons),
+                            Text(
+                              'Tip: "Filtered View" exports what you currently see (search + filters).',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ],
+                        );
+                },
+              ),
+            ),
+          );
+
     final dashboardControls = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        searchFilterBar,
-      ],
+      children: [searchFilterBar, const SizedBox(height: 12), exportControls],
     );
 
     final hasVisibleGroups = groups.isNotEmpty;
@@ -409,6 +520,7 @@ class _ResultAnalyzerScreenState extends State<ResultAnalyzerScreen> {
                     child: DepartmentSection(
                       group: group,
                       examViewMode: _examViewMode,
+                      layout: _studentListLayout,
                     ),
                   ),
                 )
@@ -434,17 +546,7 @@ class _ResultAnalyzerScreenState extends State<ResultAnalyzerScreen> {
         centerTitle: false,
         backgroundColor: Colors.white,
         elevation: 0.5,
-        actions: [
-          if (_students.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(right: 16),
-              child: IconButton(
-                onPressed: _exportToExcel,
-                icon: const Icon(Icons.download_rounded),
-                tooltip: 'Export to Excel',
-              ),
-            ),
-        ],
+        actions: const [],
       ),
       body: Container(
         decoration: const BoxDecoration(
@@ -516,6 +618,13 @@ class _ResultAnalyzerScreenState extends State<ResultAnalyzerScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
+                        _StudentLayoutToggle(
+                          layout: _studentListLayout,
+                          onChanged: (value) => setState(() {
+                            _studentListLayout = value;
+                          }),
+                        ),
+                        const SizedBox(height: 16),
                         resultsSection,
                       ] else ...[
                         // ── NARROW / MOBILE LAYOUT ───────────────────
@@ -530,11 +639,72 @@ class _ResultAnalyzerScreenState extends State<ResultAnalyzerScreen> {
                           child: subjectAnalysisPanel,
                         ),
                         const SizedBox(height: 16),
+                        _StudentLayoutToggle(
+                          layout: _studentListLayout,
+                          onChanged: (value) => setState(() {
+                            _studentListLayout = value;
+                          }),
+                        ),
+                        const SizedBox(height: 16),
                         resultsSection,
                       ],
                     ],
                   );
                 },
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Segmented toggle to switch between Vertical and Horizontal student card layouts.
+/// Rebuilds the UI immediately without page refresh. Only presentation changes.
+class _StudentLayoutToggle extends StatelessWidget {
+  const _StudentLayoutToggle({
+    required this.layout,
+    required this.onChanged,
+  });
+
+  final StudentListLayout layout;
+  final ValueChanged<StudentListLayout> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: SegmentedButton<StudentListLayout>(
+            segments: const [
+              ButtonSegment<StudentListLayout>(
+                value: StudentListLayout.vertical,
+                label: Text('Vertical View'),
+                icon: Icon(Icons.view_agenda_rounded),
+              ),
+              ButtonSegment<StudentListLayout>(
+                value: StudentListLayout.horizontal,
+                label: Text('Horizontal View'),
+                icon: Icon(Icons.view_carousel_rounded),
+              ),
+            ],
+            selected: {layout},
+            onSelectionChanged: (selection) {
+              if (selection.isNotEmpty) {
+                onChanged(selection.first);
+              }
+            },
+            style: ButtonStyle(
+              visualDensity: VisualDensity.compact,
+              padding: WidgetStateProperty.all(
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+              textStyle: WidgetStatePropertyAll(
+                theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
               ),
             ),
           ),
