@@ -35,7 +35,7 @@ jobs:
         run: flutter pub get
 
       - name: Build Flutter Web release
-        run: flutter build web --release
+        run: flutter build web --release --base-href "/college-result-analysis/"
 
       - name: Upload pages artifact
         uses: actions/upload-pages-artifact@v3
