@@ -142,9 +142,9 @@ class ExcelExportService {
       final pr = total == 0 ? 0.0 : (entry.value['All Clear']! / total) * 100;
       deptSheet.appendRow([
         _txt(entry.key),
-        _txt('$total'),
-        _txt('${entry.value['All Clear']}'),
-        _txt('${entry.value['Arrear']}'),
+        _int(total),
+        _int(entry.value['All Clear']!),
+        _int(entry.value['Arrear']!),
         _txt('${pr.toStringAsFixed(1)}%'),
       ]);
     }
@@ -169,10 +169,10 @@ class ExcelExportService {
         _txt(e.subjectCode),
         _txt(e.displayTitle),
         _txt(e.semesterLabel),
-        _txt('${e.studentCount}'),
-        _txt('${e.attendedCount}'),
-        _txt('${e.passCount}'),
-        _txt('${e.failCount}'),
+        _int(e.studentCount),
+        _int(e.attendedCount),
+        _int(e.passCount),
+        _int(e.failCount),
         _txt('${passPct.toStringAsFixed(1)}%'),
       ]);
     }
@@ -339,8 +339,8 @@ class ExcelExportService {
         _txt(s.department),
         _txt(s.academicYearLabel),
         _txt(s.semesterNumber?.toString() ?? ''),
-        _txt('${s.failedSubjectCount}'),
-        _txt('${s.subjects.length}'),
+        _int(s.failedSubjectCount),
+        _int(s.subjects.length),
       ]);
     }
     _autoFit(passSheet, columns: 7);
@@ -368,8 +368,8 @@ class ExcelExportService {
         _txt(s.department),
         _txt(s.academicYearLabel),
         _txt(s.semesterNumber?.toString() ?? ''),
-        _txt('${s.failedSubjectCount}'),
-        _txt('${s.subjects.length}'),
+        _int(s.failedSubjectCount),
+        _int(s.subjects.length),
         _txt(failedCodes),
       ]);
     }
@@ -415,6 +415,8 @@ class ExcelExportService {
   // Helpers
   // -----------------
   TextCellValue _txt(Object? v) => TextCellValue(v?.toString() ?? '');
+  IntCellValue _int(int v) => IntCellValue(v);
+  DoubleCellValue _dbl(double v) => DoubleCellValue(v);
 
   void _autoFit(Sheet sheet, {required int columns}) {
     // excel 4.x does not expose a stable public API to set column widths on Sheet.

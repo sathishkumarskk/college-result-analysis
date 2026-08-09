@@ -15,7 +15,8 @@ import '../services/excel_export_service.dart';
 import '../widgets/department_section.dart';
 import '../widgets/search_filter_bar.dart';
 import '../widgets/summary_cards.dart';
-import '../widgets/subject_analysis_panel.dart';
+import '../widgets/subject_analysis_panel_sortable.dart';
+import '../widgets/insights_panel.dart';
 import '../widgets/upload_panel.dart';
 
 class ResultAnalyzerScreen extends StatefulWidget {
@@ -404,13 +405,21 @@ class _ResultAnalyzerScreenState extends State<ResultAnalyzerScreen> {
       onYearFilterChanged: (value) => setState(() => _yearFilter = value),
     );
 
-    final subjectAnalysisPanel = SubjectAnalysisPanel(
+    final subjectAnalysisPanel = SubjectAnalysisPanelSortable(
       enabled: studentsInSelectedExamView.isNotEmpty,
       examViewMode: _examViewMode,
       selectedYear: _analysisYear,
       analysisEntries: analysisEntries,
       analysisOverview: analysisOverview,
       onYearChanged: (value) => setState(() => _analysisYear = value),
+    );
+
+    final insightsPanel = InsightsPanel(
+      enabled: studentsInSelectedExamView.isNotEmpty,
+      examViewMode: _examViewMode,
+      selectedYear: _analysisYear,
+      analysisEntries: analysisEntries,
+      analysisOverview: analysisOverview,
     );
 
     final uploadPanel = UploadPanel(
@@ -442,15 +451,22 @@ class _ResultAnalyzerScreenState extends State<ResultAnalyzerScreen> {
                     runSpacing: 12,
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      FilledButton.icon(
-                        onPressed: _exportFilteredView,
-                        icon: const Icon(Icons.file_download_rounded),
-                        label: const Text('Export Filtered View'),
+                      Tooltip(
+                        message:
+                            'Export the currently visible results with filters applied',
+                        child: FilledButton.icon(
+                          onPressed: _exportFilteredView,
+                          icon: const Icon(Icons.file_download_rounded),
+                          label: const Text('Export Filtered View'),
+                        ),
                       ),
-                      OutlinedButton.icon(
-                        onPressed: _exportAllData,
-                        icon: const Icon(Icons.save_alt_rounded),
-                        label: const Text('Export All Data'),
+                      Tooltip(
+                        message: 'Export the complete parsed dataset to Excel',
+                        child: OutlinedButton.icon(
+                          onPressed: _exportAllData,
+                          icon: const Icon(Icons.save_alt_rounded),
+                          label: const Text('Export All Data'),
+                        ),
                       ),
                       const SizedBox(width: 12),
                       Row(
@@ -617,6 +633,18 @@ class _ResultAnalyzerScreenState extends State<ResultAnalyzerScreen> {
                             ),
                           ),
                         ),
+                        const SizedBox(height: 12),
+                        Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(
+                              maxWidth: _analysisPanelMaxWidth,
+                            ),
+                            child: SizedBox(
+                              width: double.infinity,
+                              child: insightsPanel,
+                            ),
+                          ),
+                        ),
                         const SizedBox(height: 16),
                         _StudentLayoutToggle(
                           layout: _studentListLayout,
@@ -638,6 +666,8 @@ class _ResultAnalyzerScreenState extends State<ResultAnalyzerScreen> {
                           width: double.infinity,
                           child: subjectAnalysisPanel,
                         ),
+                        const SizedBox(height: 12),
+                        SizedBox(width: double.infinity, child: insightsPanel),
                         const SizedBox(height: 16),
                         _StudentLayoutToggle(
                           layout: _studentListLayout,
@@ -663,10 +693,7 @@ class _ResultAnalyzerScreenState extends State<ResultAnalyzerScreen> {
 /// Segmented toggle to switch between Vertical and Horizontal student card layouts.
 /// Rebuilds the UI immediately without page refresh. Only presentation changes.
 class _StudentLayoutToggle extends StatelessWidget {
-  const _StudentLayoutToggle({
-    required this.layout,
-    required this.onChanged,
-  });
+  const _StudentLayoutToggle({required this.layout, required this.onChanged});
 
   final StudentListLayout layout;
   final ValueChanged<StudentListLayout> onChanged;
@@ -704,7 +731,9 @@ class _StudentLayoutToggle extends StatelessWidget {
                 const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               ),
               textStyle: WidgetStatePropertyAll(
-                theme.textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
+                theme.textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ),
