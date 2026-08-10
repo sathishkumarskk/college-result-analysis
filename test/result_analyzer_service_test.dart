@@ -152,6 +152,77 @@ void main() {
       expect(arrearExamSummary.arrearCount, 1);
     });
 
+    test('falls back to full dataset when the PDF cannot classify exam buckets', () {
+      const students = [
+        StudentResult(
+          studentName: 'Unknown Bucket Student',
+          registerNumber: '312525148001',
+          department: 'AI & ML',
+          semesterNumber: 1,
+          examAttemptType: ExamAttemptType.unknown,
+          subjects: [
+            SubjectResult(code: 'CS01', title: '', grade: 'A+', result: 'PASS'),
+          ],
+        ),
+      ];
+
+      final currentView = analyzer.studentsForExamView(
+        students,
+        examViewMode: ExamViewMode.currentExam,
+      );
+      final arrearView = analyzer.studentsForExamView(
+        students,
+        examViewMode: ExamViewMode.arrearExam,
+      );
+
+      expect(currentView, hasLength(1));
+      expect(arrearView, hasLength(1));
+    });
+
+    test('builds failure-depth distribution for arrear students', () {
+      const students = [
+        StudentResult(
+          studentName: 'A',
+          registerNumber: '312525148001',
+          department: 'AI & ML',
+          semesterNumber: 1,
+          examAttemptType: ExamAttemptType.currentExam,
+          subjects: [
+            SubjectResult(code: 'CS01', title: '', grade: 'U', result: 'RA'),
+          ],
+        ),
+        StudentResult(
+          studentName: 'B',
+          registerNumber: '312525148002',
+          department: 'AI & ML',
+          semesterNumber: 1,
+          examAttemptType: ExamAttemptType.currentExam,
+          subjects: [
+            SubjectResult(code: 'CS01', title: '', grade: 'U', result: 'RA'),
+            SubjectResult(code: 'CS02', title: '', grade: 'U', result: 'RA'),
+          ],
+        ),
+        StudentResult(
+          studentName: 'C',
+          registerNumber: '312525148003',
+          department: 'AI & ML',
+          semesterNumber: 1,
+          examAttemptType: ExamAttemptType.currentExam,
+          subjects: [
+            SubjectResult(code: 'CS01', title: '', grade: 'A+', result: 'PASS'),
+            SubjectResult(code: 'CS02', title: '', grade: 'B+', result: 'PASS'),
+          ],
+        ),
+      ];
+
+      final summary = analyzer.buildSummary(students);
+
+      expect(summary.failureDepthCounts[1], 1);
+      expect(summary.failureDepthCounts[2], 1);
+      expect(summary.oneArrearCount, 1);
+      expect(summary.twoArrearCount, 1);
+    });
+
     test('counts unique subjects in summary instead of per-student rows', () {
       const repeatedSubjectStudents = [
         StudentResult(

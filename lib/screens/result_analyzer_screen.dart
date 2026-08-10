@@ -72,14 +72,22 @@ class _ResultAnalyzerScreenState extends State<ResultAnalyzerScreen> {
       );
 
   ExamViewMode _defaultExamViewMode(List<StudentResult> students) {
-    final currentExamStudents = _resultAnalyzerService.studentsForExamView(
-      students,
-      examViewMode: ExamViewMode.currentExam,
+    final currentExamStudents = students.where(
+      (student) => student.isCurrentExamStudent,
     );
+    final arrearExamStudents = students.where(
+      (student) => student.isArrearExamStudent,
+    );
+
     if (currentExamStudents.isNotEmpty) {
       return ExamViewMode.currentExam;
     }
-    return ExamViewMode.arrearExam;
+
+    if (arrearExamStudents.isNotEmpty) {
+      return ExamViewMode.arrearExam;
+    }
+
+    return ExamViewMode.currentExam;
   }
 
   AcademicYear _defaultAnalysisYear(

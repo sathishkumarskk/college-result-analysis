@@ -31,9 +31,11 @@ class ResultAnalyzerService {
       (student) => student.isCurrentExamStudent || student.isArrearExamStudent,
     );
 
-    return hasKnownExamBuckets || examViewMode == ExamViewMode.arrearExam
-        ? const []
-        : students;
+    if (!hasKnownExamBuckets) {
+      return students;
+    }
+
+    return const [];
   }
 
   List<StudentResult> filterStudents(
@@ -90,6 +92,12 @@ class ResultAnalyzerService {
   }
 
   ResultSummary buildSummary(List<StudentResult> students) {
+    final failureDepthCounts = <int, int>{};
+    for (final student in students.where((student) => student.status == ResultStatus.arrear)) {
+      final depth = student.failedSubjectCount;
+      failureDepthCounts[depth] = (failureDepthCounts[depth] ?? 0) + 1;
+    }
+
     return ResultSummary(
       totalDepartments: students
           .map((student) => student.department)
@@ -111,6 +119,7 @@ class ResultAnalyzerService {
       arrearCount: students
           .where((student) => student.status == ResultStatus.arrear)
           .length,
+      failureDepthCounts: Map.unmodifiable(failureDepthCounts),
     );
   }
 

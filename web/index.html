@@ -28,9 +28,127 @@
   <title>College Result Analysis</title>
 
   <link rel="manifest" href="manifest.json">
+
+  <style>
+    :root {
+      --primary: #ff4d00;
+      --primary-dark: #c53900;
+      --primary-soft: #fff3eb;
+      --text: #15313f;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: linear-gradient(135deg, #fff8f2, #fffdf9);
+      color: var(--text);
+    }
+
+    #flutter-loading {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--primary);
+    }
+
+    #flutter-loading .panel {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      color: white;
+    }
+
+    #flutter-loading .logo {
+      width: 112px;
+      height: 112px;
+      border-radius: 28px;
+      background: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary);
+      border: 4px solid rgba(255,255,255,0.55);
+      animation: popIn 900ms ease-out;
+    }
+
+    #flutter-loading .logo svg {
+      width: 62px;
+      height: 62px;
+    }
+
+    #flutter-loading .title {
+      font-size: 26px;
+      line-height: 1.15;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      text-align: center;
+    }
+
+    #flutter-loading .subtitle {
+      font-size: 14px;
+      opacity: 0.96;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    #flutter-loading .bar {
+      width: 180px;
+      height: 7px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.35);
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.6);
+    }
+
+    #flutter-loading .bar span {
+      display: block;
+      width: 48%;
+      height: 100%;
+      background: white;
+      border-radius: inherit;
+      animation: pulsebar 1300ms ease-in-out infinite;
+    }
+
+    @keyframes popIn {
+      from {
+        transform: scale(0.72);
+        opacity: 0.2;
+      }
+      to {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    @keyframes pulsebar {
+      50% {
+        transform: translateX(115%);
+      }
+    }
+  </style>
 </head>
 
 <body>
+  <div id="flutter-loading">
+    <div class="panel">
+      <div class="logo">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path fill="currentColor" d="M12 3 2 13h6l4 4H5l7 7h5l-4-4h4l7-7h-6l-4-4h4L12 3Z" />
+        </svg>
+      </div>
+      <div class="title">Anna University Results</div>
+      <div class="subtitle">Student Result Analyzer</div>
+      <div class="bar"><span></span></div>
+    </div>
+  </div>
 
   <!-- PDF.js -->
   <script
@@ -49,6 +167,15 @@
         'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.6.82/cmaps/',
       cMapPacked: true,
     };
+  </script>
+
+  <script>
+    window.addEventListener('flutter-first-frame', function () {
+      const loader = document.getElementById('flutter-loading');
+      if (loader) {
+        loader.style.display = 'none';
+      }
+    });
   </script>
 
   <!-- Flutter -->

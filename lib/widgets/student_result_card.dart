@@ -14,8 +14,6 @@ class StudentResultCard extends StatefulWidget {
 }
 
 class _StudentResultCardState extends State<StudentResultCard> {
-  bool _isExpanded = false;
-
   @override
   Widget build(BuildContext context) {
     final student = widget.student;
@@ -33,7 +31,8 @@ class _StudentResultCardState extends State<StudentResultCard> {
         ? const Color(0xFFE5F1FA)
         : const Color(0xFFDFF4E6);
 
-    // Sort subjects: failed first, then passed
+    // Preserve the original subject ordering from the parser instead of hiding
+    // failure-only rows behind the default collapsed UI.
     final sortedSubjects = [...student.subjects]
       ..sort((a, b) {
         if (a.isFailed && !b.isFailed) return -1;
@@ -211,51 +210,11 @@ class _StudentResultCardState extends State<StudentResultCard> {
             )
           else
             Column(
-              children: [
-                // Show only failed subjects by default, or all if expanded
-                ...sortedSubjects
-                    .where((s) => s.isFailed || _isExpanded)
-                    .map(
-                      (subject) => _SubjectRow(subject: subject, theme: theme),
-                    )
-                    ,
-                // Toggle button to show/hide all subjects
-                if (!_isExpanded && sortedSubjects.length > failedCount) ...[
-                  const SizedBox(height: 8),
-                  GestureDetector(
-                    onTap: () => setState(() => _isExpanded = true),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      child: Text(
-                        'Show all ${student.subjects.length} subjects',
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: theme.colorScheme.primary,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ),
-                ] else if (_isExpanded && sortedSubjects.length > failedCount) ...[
-                  const SizedBox(height: 8),
-                  GestureDetector(
-                    onTap: () => setState(() => _isExpanded = false),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      child: Text(
-                        'Show only failed subjects',
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: theme.colorScheme.primary,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
+              children: sortedSubjects
+                  .map(
+                    (subject) => _SubjectRow(subject: subject, theme: theme),
+                  )
+                  .toList(),
             ),
         ],
       ),

@@ -235,7 +235,12 @@ Semester Subject Code Grade Result
     }
 
     if (batchCode == null || currentBatchCode == null) {
-      return ExamAttemptType.unknown;
+      // A PDF can arrive without session/year markers that can be used to infer
+      // the active batch. In that case, do not suppress a parsed result set from
+      // the current-exam dashboard. Treat the row as a normal current exam item
+      // so the upload lands in the visible current-semester view instead of
+      // appearing to be an arrear-only upload.
+      return ExamAttemptType.currentExam;
     }
 
     if (batchCode < currentBatchCode) {
@@ -918,7 +923,7 @@ Semester Subject Code Grade Result
 
   bool _isSubjectHeaderLine(String line) {
     return RegExp(
-      r'(?:S\.?\s*No\.?\s+)?Subject\s+Code',
+      r'(?:Semester|S\.?\s*No\.?)?\s*(?:Subject\s+Code|Subject\s+Code\s+Grade\s+Result|Grade\s+Result)',
       caseSensitive: false,
     ).hasMatch(line);
   }
@@ -938,10 +943,29 @@ Semester Subject Code Grade Result
   }
 
   bool _looksLikeAnnaUniversitySubjectRowStart(String line) {
-    return RegExp(
-      r'^(?:(?:\d{1,2}|[A-Z])\.?\s+)?[A-Z]{2,}\d{3,}[A-Z0-9-]*\b',
-      caseSensitive: false,
-    ).hasMatch(line);
+    final tokens = line
+        .split(RegExp(r'\s+'))
+        .map((token) => token.trim())
+        .where((token) => token.isNotEmpty)
+        .toList();
+
+    if (tokens.isEmpty) {
+      return false;
+    }
+
+    if (tokens.length >= 1 && _looksLikeSubjectCode(tokens[0])) {
+      return true;
+    }
+
+    if (tokens.length >= 2 && _looksLikeSubjectCode(tokens[1])) {
+      return true;
+    }
+
+    if (tokens.length >= 3 && _looksLikeSubjectCode(tokens[2])) {
+      return true;
+    }
+
+    return false;
   }
 
   SubjectResult? _parseAnnaUniversitySubjectRow(String row) {

@@ -97,6 +97,64 @@ COMPUTATION 4 A+ PASS
       },
     );
 
+    test('keeps current pass rows and arrear rows in the same Anna University result block', () {
+      const rawText = '''
+Register Number : 212221040005
+Name : CURRENT PASS STUDENT
+Branch : COMPUTER SCIENCE AND ENGINEERING
+Semester Subject Code Grade Result
+01 CS25C01 A+ PASS
+01 CS25C02 A PASS
+01 CS25C03 U RA
+01 CS25C04 A PASS
+01 CS25C05 U RA
+''';
+
+      final students = parser.parseFromRawText(rawText);
+
+      expect(students, hasLength(1));
+      expect(students.first.subjects, hasLength(5));
+      expect(
+        students.first.subjects.where((subject) => subject.result == 'PASS'),
+        hasLength(3),
+      );
+      expect(
+        students.first.subjects.where((subject) => subject.result == 'RA'),
+        hasLength(2),
+      );
+    });
+
+    test('falls back to current-exam classification when a PDF lacks year/session markers', () {
+      const rawText = '''
+Register Number : 212221040001
+Name : PRIYA R
+Branch : COMPUTER SCIENCE AND ENGINEERING
+Semester No. : 01
+Semester Subject Code Grade Result
+01 CS3151 A+ PASS
+01 CS3152 A PASS
+01 MA3151 A PASS
+
+Register Number : 212221040002
+Name : ARUN K
+Branch : COMPUTER SCIENCE AND ENGINEERING
+Semester No. : 01
+Semester Subject Code Grade Result
+01 CS3151 B+ PASS
+01 CS3152 A+ PASS
+01 MA3151 A PASS
+''';
+
+      final students = parser.parseFromRawText(rawText);
+      expect(students, hasLength(2));
+      expect(
+        students.every(
+          (student) => student.examAttemptType == ExamAttemptType.currentExam,
+        ),
+        isTrue,
+      );
+    });
+
     test('still parses bundled dummy data', () {
       final students = parser.parseDemoData();
 

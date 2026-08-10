@@ -20,7 +20,7 @@ class SummaryCards extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final metrics = [
+    final metrics = <_MetricData>[
       _MetricData(
         label: 'Entries',
         value: summary.totalStudents,
@@ -40,6 +40,26 @@ class SummaryCards extends StatelessWidget {
         label: 'Arrear',
         value: summary.arrearCount,
         icon: Icons.warning_amber_rounded,
+      ),
+      _MetricData(
+        label: '1 Arrear',
+        value: summary.oneArrearCount,
+        icon: Icons.filter_1_rounded,
+      ),
+      _MetricData(
+        label: '2 Arrear',
+        value: summary.twoArrearCount,
+        icon: Icons.filter_2_rounded,
+      ),
+      _MetricData(
+        label: '3 Arrear',
+        value: summary.threeArrearCount,
+        icon: Icons.filter_3_rounded,
+      ),
+      _MetricData(
+        label: '4+ Arrear',
+        value: summary.fourPlusArrearCount,
+        icon: Icons.trending_up_rounded,
       ),
       _MetricData(
         label: 'Subjects',
