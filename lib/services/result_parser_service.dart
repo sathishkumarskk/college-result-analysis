@@ -324,14 +324,14 @@ Semester Subject Code Grade Result
 
   _ExamSessionType _extractExamSessionType(String text) {
     if (RegExp(
-      r'Nov\.?\s*/\s*Dec\.?\s+Examination',
+      r'Nov(?:ember)?\.?\s*/\s*Dec(?:ember)?\.?\s+Examination',
       caseSensitive: false,
     ).hasMatch(text)) {
       return _ExamSessionType.oddSemesterMain;
     }
 
     if (RegExp(
-      r'Apr\.?\s*/\s*May\.?\s+Examination',
+      r'Apr(?:il)?\.?\s*/\s*May\.?\s+Examination',
       caseSensitive: false,
     ).hasMatch(text)) {
       return _ExamSessionType.evenSemesterMain;

@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:collage_result/models/student_result.dart';
+import 'package:collage_result/services/pdf_extraction_service.dart';
 import 'package:collage_result/services/result_parser_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -619,6 +622,54 @@ Anna University - COE
             .academicYearLabel,
         'First Year',
       );
+    });
+
+    test('parses the bundled Anna University result PDFs', () async {
+      final pdfFiles =
+          Directory('result_test_data')
+              .listSync()
+              .whereType<File>()
+              .where((file) => file.path.toLowerCase().endsWith('.pdf'))
+              .toList()
+            ..sort((a, b) => a.path.compareTo(b.path));
+      final extractor = PdfExtractionService();
+      var parsedAidsFixture = false;
+
+      for (final file in pdfFiles) {
+        final extraction = await extractor.extractText(
+          await file.readAsBytes(),
+        );
+        final students = parser.parseFromRawText(extraction.text);
+        final currentCount = students
+            .where((student) => student.isCurrentExamStudent)
+            .length;
+        final arrearCount = students
+            .where((student) => student.isArrearExamStudent)
+            .length;
+
+        expect(
+          students,
+          isNotEmpty,
+          reason: 'No students parsed from ${file.path}',
+        );
+        expect(
+          currentCount + arrearCount,
+          students.length,
+          reason:
+              'Some students were not assigned an exam view in ${file.path}',
+        );
+
+        if (file.path.endsWith('AIDS (2).pdf')) {
+          parsedAidsFixture = true;
+          expect(
+            currentCount,
+            greaterThan(0),
+            reason: 'The April/May fixture must include current-exam students.',
+          );
+        }
+      }
+
+      expect(parsedAidsFixture, isTrue, reason: 'AIDS fixture was not found.');
     });
   });
 }
